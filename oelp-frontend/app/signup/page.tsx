@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,8 +15,6 @@ const GoogleIcon = () => <svg xmlns="http://www.w3.org/2000/svg" height="20" wid
 const KeyIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>;
 
 
-const PROFESSOR_SECRET_CODE = process.env.NEXT_PUBLIC_PROFESSOR_CODE;
-
 export default function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,12 +26,18 @@ export default function Signup() {
   const router = useRouter();
   const supabase = createClient();
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("role") === "professor") {
+      setRole("professor");
+    }
+  }, []);
+
   const handleGoogleLogin = async () => {
     // Google login defaults to 'student' via database trigger
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${location.origin}/login`, 
+        redirectTo: `${location.origin}/auth/callback`, 
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
@@ -51,32 +55,33 @@ export default function Signup() {
     setError("");
     setLoading(true);
 
-    if (role === "professor") {
-      if (passcode !== PROFESSOR_SECRET_CODE) {
-        setError("Invalid Faculty Passcode. Please contact administration.");
+    try {
+      const res = await fetch("http://localhost:8000/signup-professor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          passcode: passcode,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.detail || "Signup failed.");
         setLoading(false);
         return;
       }
-    }
 
-    const { error: authError } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-      options: {
-        data: {
-          role: role
-        }
-      }
-    });
-
-    if (authError) {
-      setError(authError.message);
+      alert("Professor account created successfully! Please log in.");
       setLoading(false);
-      return;
+      router.push("/login");
+    } catch (err: any) {
+      setError("Network error. Please ensure the server is running.");
+    } finally {
+      setLoading(false);
     }
-
-    alert("Signup successful! Please log in.");
-    router.push("/login");
   };
 
   return (

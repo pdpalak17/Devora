@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/app/component/LogoutButton";
+import ProfileDropdown from "@/app/component/ProfileDropdown";
 import ConfirmationModal from "@/app/component/ConfirmationModal";
 // Icons
 const TrashIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
@@ -17,6 +18,7 @@ export default function ProfessorDashboard() {
   const [labs, setLabs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
+  const [userMetadata, setUserMetadata] = useState<any>(null);
   
   // Delete Modal State
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -34,6 +36,7 @@ export default function ProfessorDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push("/login"); return; }
     setUserEmail(user.email || "");
+    setUserMetadata(user.user_metadata || {});
 
     const { data } = await supabase
       .from("lab_sections")
@@ -50,12 +53,18 @@ export default function ProfessorDashboard() {
     const formData = new FormData(e.currentTarget);
     const { data: { user } } = await supabase.auth.getUser();
     
-    await supabase.from("lab_sections").insert({
+    const { error } = await supabase.from("lab_sections").insert({
       title: formData.get("title"),
       description: formData.get("description"),
       professor_id: user?.id,
     });
     
+    if (error) {
+      console.error("Error creating lab:", error);
+      alert("Failed to create lab: " + error.message);
+      return;
+    }
+
     // Reset form and refetch
     (e.target as HTMLFormElement).reset();
     fetchLabs();
@@ -100,8 +109,19 @@ export default function ProfessorDashboard() {
             LabAdmin
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">{userEmail}</span>
-            <LogoutButton />
+            <Link 
+              href="/admin/Analytics" 
+              className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 hover:bg-amber-100 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border border-amber-200"
+            >
+              <ChartIcon /> Global Analytics
+            </Link>
+            <ProfileDropdown 
+              email={userEmail || "Professor"} 
+              username={userMetadata?.username}
+              avatarUrl={userMetadata?.avatar_url}
+              avatarColor={userMetadata?.avatar_color}
+              badge={userMetadata?.badge}
+            />
           </div>
         </div>
       </nav>

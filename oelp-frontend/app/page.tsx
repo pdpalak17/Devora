@@ -7,26 +7,38 @@ export default async function HomePage() {
   // 1. Get the current authenticated user
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 2. If no user, redirect to login
   if (!user) {
     redirect("/login");
   }
 
   // 3. If user exists, get their role from the 'profiles' table
-  const { data: profile, error } = await supabase
+  let { data: profile, error } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
 
   if (error || !profile) {
-    // This case shouldn't happen if signup is successful,
-    // but it's good to handle.
-    // You could redirect to a "/finish-profile" page if needed.
-    console.error("Error fetching profile:", error);
-    // You could also sign them out here
-    // await supabase.auth.signOut();
-    redirect("/login");
+    console.error("Profile not found, creating a new one...", error);
+    
+    // Check user_metadata for role (set during professor signup)
+    const metadataRole = user.user_metadata?.role;
+    const assignedRole = metadataRole === "professor" ? "professor" : "student";
+    
+    // Auto-create profile if it doesn't exist
+    const { data: newProfile, error: insertError } = await supabase
+      .from("profiles")
+      .insert([{ id: user.id, role: assignedRole }])
+      .select("role")
+      .single();
+
+    if (insertError || !newProfile) {
+      console.error("Error creating profile:", insertError);
+      redirect("/login");
+    }
+    
+    // Use the newly created profile
+    profile = newProfile;
   }
 
   // 4. Redirect based on role

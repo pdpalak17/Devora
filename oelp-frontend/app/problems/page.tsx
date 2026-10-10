@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import LogoutButton from "@/app/component/LogoutButton";
+import ProfileDropdown from "@/app/component/ProfileDropdown";
 
 // 🚨 FORCE DYNAMIC RENDERING
 export const revalidate = 0;
@@ -44,14 +44,31 @@ export default async function StudentDashboard() {
 
   return (
     <>
-    <div className="bg-black min-h-screen">
+    <div className="bg-[#1a1a1a] min-h-screen font-sans">
+      <nav className="bg-[#2c2c2c] border-b border-gray-800">
+        <div className="max-w-5xl mx-auto px-8 h-16 flex justify-between items-center">
+          <div className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="text-amber-500">{"</>"}</span> Devora
+          </div>
+          <div className="flex gap-4 items-center">
+            <Link href="/problems/leaderboard" className="text-sm font-medium text-gray-300 hover:text-amber-500 transition-colors">
+              Leaderboard
+            </Link>
+            <div className="w-px h-6 bg-gray-700 mx-2"></div>
+            <ProfileDropdown 
+              email={user.email || "Student"} 
+              username={user.user_metadata?.username} 
+              avatarUrl={user.user_metadata?.avatar_url} 
+              avatarColor={user.user_metadata?.avatar_color}
+              badge={user.user_metadata?.badge}
+            />
+          </div>
+        </div>
+      </nav>
+
     <div className="max-w-5xl mx-auto p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-100">My Dashboard</h1>
-        <div className="text-sm text-gray-600">
-          Welcome back, <span className="font-semibold">{user.email}</span>
-        </div>
-        <div><LogoutButton /></div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">

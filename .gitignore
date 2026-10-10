@@ -1,30 +1,39 @@
-Python / venv
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+oelp-frontend/.env
+oelp-frontend/.env.*
+!oelp-frontend/.env.example
 
-pycache/
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
 venv/
-*.pyc
+.venv/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
 
-Next.js dependencies
-
-This path is now relative to the OELP_TEST folder
-
-oelp-frontend/node_modules/
-
-Next.js build files
-
-oelp-frontend/.next/
-
-Next.js Environment files (SECRETS!)
-
-oelp-frontend/.env.local
-oelp-frontend/.env.*.local
-
-Log files
-
+# Node / Next.js
+node_modules/
+.next/
+out/
+coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-Editor files
+# Build artifacts and local data
+dist/
+build/
+*.log
 
-.vscode
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

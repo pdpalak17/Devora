@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import LabSelector from "./LabSelector";
@@ -37,17 +38,27 @@ export default async function AnalyticsDashboard({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const supabaseAdmin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY)!
+  );
+
   // 2. Fetch Helper Data
-  const [labsReq, studentsReq] = await Promise.all([
+  const [labsReq, studentsReq, authUsersReq] = await Promise.all([
     supabase.from("lab_sections").select("id, title").order("created_at"),
-    supabase.from("profiles").select("id, email").eq("role", "student")
+    supabaseAdmin.from("profiles").select("id").eq("role", "student"),
+    supabaseAdmin.auth.admin.listUsers()
   ]);
 
   const labs = labsReq.data || [];
-  const students = studentsReq.data || [];
+  const authUsers = authUsersReq.data.users || [];
+  const students = (studentsReq.data || []).map(s => ({
+    id: s.id,
+    email: authUsers.find(u => u.id === s.id)?.email || "Unknown Student"
+  }));
 
   // 3. Build Submissions Query
-  let query = supabase
+  let query = supabaseAdmin
     .from("submissions")
     .select(`
       student_id, 
